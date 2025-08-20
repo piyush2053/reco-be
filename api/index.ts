@@ -34,7 +34,7 @@ app.get('/getExcelDatatoday', (req:any, res:any) => {
 
   // Dummy Tally-like payload
   const data = {
-    companyName: "Demo Traders Pvt Ltd",
+    companyName: "Reco Bath Pvt Ltd",
     exportDate,                       // e.g. 2025-08-21
     currency: "INR",
     bookName: "Day Book",
