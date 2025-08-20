@@ -1,8 +1,10 @@
 // api/index.js
 const express = require('express');
 const path = require('path');
+const cors = require('cors'); 
 
-const app = express();
+const app:any = express();
+app.use(cors());
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
 app.get('/', (req: any, res: any) => {
@@ -104,6 +106,6 @@ app.get('/health', (req: any, res: any) => {
   res.status(200).json({ status: 'ok-reco', timestamp: new Date().toISOString() });
 });
 
-app.listen(3000, () => console.log('Server running on http://localhost:3000'));
+app.listen(3001, () => console.log('Server running on http://localhost:3000'));
 
 module.exports = app;
