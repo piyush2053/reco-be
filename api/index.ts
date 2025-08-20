@@ -101,7 +101,7 @@ app.get('/getExcelDatatoday', (req:any, res:any) => {
 });
 // Health check
 app.get('/health', (req: any, res: any) => {
-  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+  res.status(200).json({ status: 'ok-reco', timestamp: new Date().toISOString() });
 });
 
 app.listen(3000, () => console.log('Server running on http://localhost:3000'));
