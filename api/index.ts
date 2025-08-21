@@ -1,19 +1,20 @@
-// api/index.js
 const express = require('express');
 const path = require('path');
-const cors = require('cors'); 
+const cors = require('cors');
+const excelToJson = require('convert-excel-to-json');
+const fs = require('fs');
+const app = express();
 
-const app:any = express();
 app.use(cors());
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
-app.get('/', (req: any, res: any) => {
+app.get('/', (req:any,res: any) => {
   res.type('html').send(`
     <!doctype html>
     <html>
       <head>
         <meta charset="utf-8"/>
-        <title>Express on Vercel</title>
+        <title>Reco Bath</title>
         <link rel="stylesheet" href="/style.css" />
       </head>
       <body>
@@ -25,87 +26,65 @@ app.get('/', (req: any, res: any) => {
 
 /**
  * NEW: /getExcelDatatoday
- * Returns dummy data shaped like a Tally Excel export in JSON form.
- * You can add a ?date=YYYY-MM-DD query to override "today".
+ * Returns data from the Excel file as JSON.
  */
-app.get('/getExcelDatatoday', (req:any, res:any) => {
-  const todayIso = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-  const exportDate = req.query.date || todayIso;
+app.get('/getExcelDatatoday', (req:any, res: any) => {
+  const filePath = path.join(__dirname, 'test', 'Sales Order Pending.xlsx');
+  console.log(filePath, 'filePathfilePathfilePath')
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).json({ error: 'File not found' });
+  }else{
+    console.log("file loaded")
+  }
 
-  // Dummy Tally-like payload
-  const data = {
-    companyName: "Reco Bath Pvt Ltd",
-    exportDate,                       // e.g. 2025-08-21
-    currency: "INR",
-    bookName: "Day Book",
-    vouchers: [
-      {
-        date: exportDate,
-        voucherType: "Sales",
-        voucherNumber: "S-000123",
-        partyLedger: "ABC Retailers",
-        placeOfSupply: "Gujarat",
-        narration: "Sale of goods",
-        refNo: "INV-123",
-        items: [
-          { stockItem: "Item A", qty: 5, uom: "Nos", rate: 120.0, amount: 600.0, tax: { cgst: 9, sgst: 9 } },
-          { stockItem: "Item B", qty: 2, uom: "Nos", rate: 350.0, amount: 700.0, tax: { cgst: 9, sgst: 9 } }
-        ],
-        ledgers: [
-          { ledgerName: "Sales @18%", amount: -1100.0 },
-          { ledgerName: "CGST @9%", amount: -99.0 },
-          { ledgerName: "SGST @9%", amount: -99.0 },
-          { ledgerName: "ABC Retailers", amount: 1298.0 }
-        ],
-        totals: { taxable: 1100.0, cgst: 99.0, sgst: 99.0, igst: 0.0, roundOff: 0.0, grandTotal: 1298.0 }
-      },
-      {
-        date: exportDate,
-        voucherType: "Receipt",
-        voucherNumber: "R-000045",
-        partyLedger: "ABC Retailers",
-        narration: "Payment received via UPI",
-        ledgers: [
-          { ledgerName: "ABC Retailers", amount: -1298.0 },
-          { ledgerName: "Bank - HDFC", amount: 1298.0 }
-        ],
-        totals: { amount: 1298.0 }
-      },
-      {
-        date: exportDate,
-        voucherType: "Purchase",
-        voucherNumber: "P-000210",
-        partyLedger: "XYZ Wholesalers",
-        narration: "Purchase of stock",
-        items: [
-          { stockItem: "Item A", qty: 10, uom: "Nos", rate: 100.0, amount: 1000.0, tax: { cgst: 9, sgst: 9 } }
-        ],
-        ledgers: [
-          { ledgerName: "XYZ Wholesalers", amount: -1180.0 },
-          { ledgerName: "Purchases @18%", amount: 1000.0 },
-          { ledgerName: "CGST @9%", amount: 90.0 },
-          { ledgerName: "SGST @9%", amount: 90.0 }
-        ],
-        totals: { taxable: 1000.0, cgst: 90.0, sgst: 90.0, igst: 0.0, roundOff: 0.0, grandTotal: 1180.0 }
-      }
-    ],
-    summary: {
-      totalVouchers: 3,
-      salesValue: 1298.0,
-      purchaseValue: 1180.0,
-      receipts: 1298.0,
-      payments: 0.0,
-      taxes: { cgst: 189.0, sgst: 189.0, igst: 0.0 }
-    }
-  };
+ const result = excelToJson({
+    sourceFile: filePath,
+    header: { rows: 8 },
+    columnToKey: {
+      '*': '{{columnHeader}}',
+    },
+  });
+  const salesOrderData = result['Sales Order Register'];
+  const processedData = salesOrderData.map((row: any)  => {
+    return {
+      date: row['Date'],
+      particulars: row['Particulars'],
+      voucherType: row['Voucher Type'],
+      voucherNo: row['Voucher No.'],
+      orderReferenceNo: row['Order Reference No.'],
+      narration: row['Narration'],
+      quantity: row['Quantity'],
+      rate: row['Rate'],
+      value: row['Value'],
+      grossTotal: row['Gross Total'],
+      saleGSTRecoCp: row['Sale GST Reco Cp'],
+      sgstOutput: row['SGST Output'],
+      cgstOutput: row['CGST Output'],
+      roundOff: row['Round Off'],
+      specialDiscountOnGSTSale: row['Special Discount on GST Sale'],
+      saleGSTAccessories: row['Sale GST Accessories'],
+      adhesiveSale: row['Adisive Sale'],
+      saleGSTSW: row['Sale GST S/W'],
+      saleGSTPVC: row['Sale GST PVC'],
+      cashDiscountOnGSTSale: row['Cash Discount on GST Sale'],
+      salesReturnReco: row['Sales Return Reco'],
+      plumberSchOnGstDiscount: row['Plumber Sch on Gst Discount'],
+      fuelFactorGSTSaleFREIGHT: row['Fuel Factor GST Sale FREIGHT'],
+      cartageGST: row['Cartage GST'],
+      igstOutput: row['IGST (OUTPUT)'],
+      displayDiscountOnGstSale: row['Display Discount on Gst Sale'],
+      saleGstPTMT: row['Sale Gst PTMT'],
+    };
+  });
 
-  res.json(data);
+  res.json(processedData);
 });
+
 // Health check
-app.get('/health', (req: any, res: any) => {
+app.get('/health', (req:any, res: any) => {
   res.status(200).json({ status: 'ok-reco', timestamp: new Date().toISOString() });
 });
 
-app.listen(3001, () => console.log('Server running on http://localhost:3000'));
+app.listen(3001, () => console.log('Server running on http://localhost:3001'));
 
 module.exports = app;
