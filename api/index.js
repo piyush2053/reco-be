@@ -542,13 +542,4 @@ app.get("/settlement", (_req, res) => {
 });
 
 
-/* ---------------- SERVER ---------------- */
-
-const PORT = 3001;
-if (!process.env.VERCEL) {
-  app.listen(PORT, () => {
-    console.log(`Kitchen Hisaab API running on http://localhost:${PORT}`);
-  });
-}
-
 module.exports = app;
