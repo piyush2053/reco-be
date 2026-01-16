@@ -1,31 +1,31 @@
 {
-	"name": "express",
-	"version": "1.0.0",
-	"description": "",
-	"main": "index.ts",
-	"type": "commonjs",
-	"engines": {
-		"node": "24.x"
-	},
-	"scripts": {
-		"dev": "nodemon api/index.js"
-	},
-	"keywords": [],
-	"author": "",
-	"license": "ISC",
-	"dependencies": {
-		"convert-excel-to-json": "^1.7.0",
-		"cors": "^2.8.5",
-		"exceljs": "^4.4.0",
-		"express": "^4.18.2",
-		"nodemon": "^3.1.11",
-		"xlsx": "^0.18.5"
-	},
-	"devDependencies": {
-		"@types/cors": "^2.8.19",
-		"@types/express": "^5.0.6",
-		"@types/node": "^24.3.0",
-		"ts-node": "^10.9.2",
-		"typescript": "^5.9.2"
-	}
+  "name": "express",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "commonjs",
+  "engines": {
+    "node": "22.x"
+  },
+  "scripts": {
+    "dev": "nodemon api/index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "convert-excel-to-json": "^1.7.0",
+    "cors": "^2.8.5",
+    "exceljs": "^4.4.0",
+    "express": "^4.18.2",
+    "nodemon": "^3.1.11",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/node": "^22.0.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.2"
+  }
 }
