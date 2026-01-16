@@ -48,23 +48,25 @@ function ensureDataFile() {
   if (!fs.existsSync(DATA_FILE)) {
     fs.writeFileSync(
       DATA_FILE,
-      JSON.stringify({ contributions: [], expenses: [] }, null, 2)
+      JSON.stringify(
+        { contributions: [], expenses: [], settlements: [] },
+        null,
+        2
+      )
     );
-    console.log("✅ JSON data file created");
   }
 }
+
 function readData() {
   const raw = JSON.parse(fs.readFileSync(DATA_FILE, "utf-8"));
 
   return {
-    contributions: Array.isArray(raw.contributions)
-      ? raw.contributions
-      : [],
-    expenses: Array.isArray(raw.expenses)
-      ? raw.expenses
-      : [],
+    contributions: Array.isArray(raw.contributions) ? raw.contributions : [],
+    expenses: Array.isArray(raw.expenses) ? raw.expenses : [],
+    settlements: Array.isArray(raw.settlements) ? raw.settlements : [],
   };
 }
+
 
 function writeData(data) {
   fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
@@ -73,6 +75,20 @@ function writeData(data) {
 /* ---------------- INIT ---------------- */
 
 ensureDataFile();
+
+function calculateSettlement(data) {
+  const rishiExpenses = data.expenses.reduce(
+    (s, e) => (e.paidBy === "rishi" ? s + Number(e.amount || 0) : s),
+    0
+  );
+
+  const settledAmount = data.settlements.reduce(
+    (s, st) => s + Number(st.amount || 0),
+    0
+  );
+
+  return Math.max(0, rishiExpenses - settledAmount);
+}
 
 /* ---------------- ROUTES ---------------- */
 
@@ -161,17 +177,26 @@ app.get("/wallet", (_req, res) => {
 /**
  * ACCOUNT STATEMENT (HTML REPORT)
  */
+/**
+ * ACCOUNT STATEMENT (HTML REPORT)
+ */
 app.get("/statement", (_req, res) => {
   const data = readData();
 
   /* ---------- Settlement Calculation ---------- */
-  let piyushOwesRishi = 0;
-
-  data.expenses.forEach(e => {
-    if (e.paidBy === "rishi") {
-      piyushOwesRishi += Number(e.amount || 0);
-    }
-  });
+  const piyushOwesRishi = calculateSettlement(data);
+  const settlementRows = data.settlements
+    .map(
+      s => `
+    <tr>
+      <td>${formatDate(s.dateTime)}</td>
+      <td>${s.from}</td>
+      <td>${s.to}</td>
+      <td class="amount-cell amount-green">₹ ${s.amount}</td>
+    </tr>
+    `
+    )
+    .join("");
 
   const totalContributions = data.contributions.reduce(
     (s, c) => s + Number(c.amount || 0),
@@ -186,7 +211,7 @@ app.get("/statement", (_req, res) => {
   const settlementText =
     piyushOwesRishi > 0
       ? `Piyush owes Rishi ₹${piyushOwesRishi}`
-      : `All settled`;
+      : `All dues settled`;
 
   const settlementClass =
     piyushOwesRishi > 0 ? "danger" : "success";
@@ -197,9 +222,9 @@ app.get("/statement", (_req, res) => {
     .map(
       c => `
       <tr>
-       <td>${formatDate(c.dateTime)}</td>
+        <td>${formatDate(c.dateTime)}</td>
         <td>${c.user}</td>
-        <td>₹ ${c.amount}</td>
+        <td class="amount-cell amount-green">₹ ${c.amount}</td>
       </tr>
       `
     )
@@ -212,7 +237,7 @@ app.get("/statement", (_req, res) => {
         <td>${formatDate(e.dateTime)}</td>
         <td>${e.paidBy}</td>
         <td>${e.description}</td>
-        <td>₹ ${e.amount}</td>
+        <td class="amount-cell amount-red">₹ ${e.amount}</td>
       </tr>
       `
     )
@@ -229,6 +254,21 @@ app.get("/statement", (_req, res) => {
         <div class="amount green">+ ₹${c.amount}</div>
       </div>
       `
+    )
+    .join("");
+  const settlementCards = data.settlements
+    .map(
+      s => `
+    <div class="list-card">
+      <div>
+        <strong>Settlement</strong>
+        <div class="muted">
+          ${s.from} → ${s.to} · ${formatDate(s.dateTime)}
+        </div>
+      </div>
+      <div class="amount green">₹${s.amount}</div>
+    </div>
+    `
     )
     .join("");
 
@@ -261,9 +301,7 @@ app.get("/statement", (_req, res) => {
         padding: 16px;
       }
 
-      h1 {
-        margin-bottom: 16px;
-      }
+      h1 { margin-bottom: 16px; }
 
       .container {
         max-width: 1100px;
@@ -310,7 +348,6 @@ app.get("/statement", (_req, res) => {
       th, td {
         padding: 12px;
         text-align: left;
-        border-bottom: 1px solid #eee;
       }
 
       th {
@@ -345,19 +382,44 @@ app.get("/statement", (_req, res) => {
 
       /* -------- MOBILE -------- */
       @media (max-width: 768px) {
-        .grid {
-          grid-template-columns: 1fr;
-        }
-
-        table {
-          display: none;
-        }
+        .grid { grid-template-columns: 1fr; }
+        table { display: none; }
       }
 
-      /* -------- DESKTOP -------- */
+      /* -------- DESKTOP (PRO UI) -------- */
       @media (min-width: 769px) {
-        .mobile-only {
-          display: none;
+        .mobile-only { display: none; }
+
+        table {
+          border: 1px solid #e0e0e0;
+        }
+
+        th {
+          border-bottom: 1px solid #dcdcdc;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.4px;
+        }
+
+        td {
+          border-bottom: 1px solid #f0f0f0;
+          font-size: 14px;
+        }
+
+        .amount-cell {
+          font-weight: 700;
+          text-align: right;
+          border-radius: 6px;
+        }
+
+        .amount-green {
+          color: #2e7d32;
+          background: #e8f5e9;
+        }
+
+        .amount-red {
+          color: #c62828;
+          background: #fdecea;
         }
       }
     </style>
@@ -365,7 +427,7 @@ app.get("/statement", (_req, res) => {
 
   <body>
     <div class="container">
-      <h1>🍳 Kitchen Hisaab – Account Statement</h1>
+      <h1>Account Statement</h1>
 
       <div class="grid">
         <div class="card">
@@ -376,7 +438,7 @@ app.get("/statement", (_req, res) => {
         </div>
 
         <div class="card">
-          <h3>Total Contributions</h3>
+          <h3>Total Wallet Recharge</h3>
           <div class="value">₹ ${totalContributions}</div>
         </div>
 
@@ -386,10 +448,14 @@ app.get("/statement", (_req, res) => {
         </div>
       </div>
 
-      <h2>Contributions</h2>
+      <h2>Wallet History</h2>
 
       <table>
-        <tr><th>Date</th><th>User</th><th>Amount</th></tr>
+        <tr>
+          <th>Date</th>
+          <th>User</th>
+          <th>Wallet Recharge</th>
+        </tr>
         ${contributionRows}
       </table>
 
@@ -400,13 +466,34 @@ app.get("/statement", (_req, res) => {
       <h2>Expenses</h2>
 
       <table>
-        <tr><th>Date</th><th>Paid By</th><th>Description</th><th>Amount</th></tr>
+        <tr>
+          <th>Date</th>
+          <th>Paid By</th>
+          <th>Description</th>
+          <th>Amount</th>
+        </tr>
         ${expenseRows}
       </table>
 
       <div class="mobile-only">
         ${expenseCards}
       </div>
+      <h2>Settlements</h2>
+
+<table>
+  <tr>
+    <th>Date</th>
+    <th>From</th>
+    <th>To</th>
+    <th>Amount</th>
+  </tr>
+  ${settlementRows || ""}
+</table>
+
+<div class="mobile-only">
+  ${settlementCards || ""}
+</div>
+
     </div>
   </body>
   </html>
@@ -415,23 +502,45 @@ app.get("/statement", (_req, res) => {
   res.type("html").send(html);
 });
 
+/**
+ * SETTLE DUES
+ * Clears dues WITHOUT touching wallet
+ */
+app.post("/settle", (_req, res) => {
+  try {
+    const data = readData();
+    const due = calculateSettlement(data);
 
+    if (due <= 0) {
+      return res.json({ message: "Nothing to settle" });
+    }
+
+    data.settlements.push({
+      dateTime: new Date().toISOString(),
+      amount: due,
+      from: "piyush",
+      to: "rishi",
+    });
+
+    writeData(data);
+
+    res.json({
+      message: "Settlement cleared",
+      settledAmount: due,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Settlement failed" });
+  }
+});
 
 app.get("/settlement", (_req, res) => {
   const data = readData();
+  const piyushOwesRishi = calculateSettlement(data);
 
-  let piyushOwesRishi = 0;
-
-  data.expenses.forEach(e => {
-    if (e.paidBy === "rishi") {
-      piyushOwesRishi += Number(e.amount || 0);
-    }
-  });
-
-  res.json({
-    piyushOwesRishi,
-  });
+  res.json({ piyushOwesRishi });
 });
+
 
 /* ---------------- SERVER ---------------- */
 
