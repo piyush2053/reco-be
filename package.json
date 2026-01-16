@@ -4,7 +4,8 @@
 	"description": "",
 	"main": "index.ts",
 	"scripts": {
-		"dev": "ts-node api/index.ts",
+		"dev": "nodemon --watch api --ext ts,js --exec ts-node api/index.js",
+		"dev:js": "nodemon --watch api --ext js --exec node api/index.js",
 		"build": "tsc",
 		"start": "node dist/api/index.js"
 	},
@@ -14,10 +15,14 @@
 	"dependencies": {
 		"convert-excel-to-json": "^1.7.0",
 		"cors": "^2.8.5",
-		"express": "^4.18.2"
+		"exceljs": "^4.4.0",
+		"express": "^4.18.2",
+		"nodemon": "^3.1.11",
+		"xlsx": "^0.18.5"
 	},
 	"devDependencies": {
 		"@types/cors": "^2.8.19",
+		"@types/express": "^5.0.6",
 		"@types/node": "^24.3.0",
 		"ts-node": "^10.9.2",
 		"typescript": "^5.9.2"
